@@ -20,6 +20,7 @@ import (
 )
 
 var profile = flag.Bool("profile", false, "write profile to `file`")
+var scriptPath = flag.String("script", "./scripts/app.php", "the php script that should be run")
 
 func main() {
 
@@ -60,8 +61,7 @@ func main() {
 	}
 
 	manager := process.NewManager(&config.Config{
-		NumWorkers: 100,
-		ScriptPath: "./scripts/app.php",
+		ScriptPath: *scriptPath,
 	})
 
 	l, err := net.Listen("tcp", "localhost:13337")

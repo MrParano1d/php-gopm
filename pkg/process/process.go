@@ -46,7 +46,6 @@ func (p *PHPProcess) Connect(c net.Conn) {
 
 	go p.KeepAlive(c)
 
-	log.Println("connecting")
 	p.conn = c
 
 }

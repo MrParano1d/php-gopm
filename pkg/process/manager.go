@@ -59,8 +59,6 @@ func (m *Manager) Listen(l net.Listener) {
 			continue
 		}
 
-		log.Println("receiving connection")
-
 		m.connectionQueue <- fd
 	}
 }
