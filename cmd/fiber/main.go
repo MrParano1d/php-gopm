@@ -4,61 +4,22 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
-	"github.com/gofiber/fiber/v2"
-	"github.com/mrparano1d/php-gopm/pkg/config"
-	"github.com/mrparano1d/php-gopm/pkg/process"
 	"io"
 	"log"
 	"net"
 	"net/http"
-	"os"
-	"os/signal"
-	"runtime"
-	"runtime/pprof"
 	"strings"
-	"syscall"
+
+	"github.com/gofiber/fiber/v2"
+	"github.com/mrparano1d/php-gopm/pkg/config"
+	"github.com/mrparano1d/php-gopm/pkg/process"
 )
 
-var profile = flag.Bool("profile", false, "write profile to `file`")
 var scriptPath = flag.String("script", "./scripts/app.php", "the php script that should be run")
 
 func main() {
 
 	flag.Parse()
-
-	if *profile {
-		cf, err := os.Create("cpu.pprof")
-		if err != nil {
-			log.Fatal(err)
-		}
-		if err := pprof.StartCPUProfile(cf); err != nil {
-			panic(fmt.Errorf("failed to start cpu profile: %v", err))
-		}
-
-		c := make(chan os.Signal)
-		signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-		go func() {
-			<-c
-			mf, err := os.Create("mem.pprof")
-			if err != nil {
-				log.Fatal("could not create memory profile: ", err)
-			}
-
-			runtime.GC() // get up-to-date statistics
-			if err := pprof.WriteHeapProfile(mf); err != nil {
-				log.Fatal("could not write memory profile: ", err)
-			}
-			pprof.StopCPUProfile()
-
-			if err := mf.Close(); err != nil {
-				log.Printf("failed to close memory pprof file: %v\n", err)
-			}
-			if err := cf.Close(); err != nil {
-				log.Printf("failed to close cpu pprof file: %v\n", err)
-			}
-			os.Exit(1)
-		}()
-	}
 
 	manager := process.NewManager(&config.Config{
 		ScriptPath: *scriptPath,

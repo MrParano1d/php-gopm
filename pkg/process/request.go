@@ -6,8 +6,8 @@ type PHPHandler struct {
 	Error    chan error
 }
 
-func NewPHPHandler(req string) *PHPHandler {
-	return &PHPHandler{
+func NewPHPHandler(req string) PHPHandler {
+	return PHPHandler{
 		Request:  req,
 		Response: make(chan string, 1),
 		Error:    make(chan error, 1),

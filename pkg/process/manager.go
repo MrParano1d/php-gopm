@@ -1,12 +1,14 @@
 package process
 
 import (
+	"errors"
 	"fmt"
-	"github.com/mrparano1d/php-gopm/pkg/config"
 	"log"
 	"net"
 	"runtime"
 	"time"
+
+	"github.com/mrparano1d/php-gopm/pkg/config"
 )
 
 type Manager struct {
@@ -14,7 +16,6 @@ type Manager struct {
 	config          *config.Config
 	workers         []*PHPProcess
 	connectionQueue chan net.Conn
-	requestQueue    chan *PHPHandler
 	idleWorker      chan *PHPProcess
 }
 
@@ -25,12 +26,16 @@ func NewManager(config *config.Config) *Manager {
 	} else {
 		numWorkers = config.NumWorkers
 	}
+
+	if config.RequestTimeout == 0 {
+		config.RequestTimeout = 10000
+	}
+
 	return &Manager{
 		numWorkers:      numWorkers,
 		config:          config,
 		workers:         make([]*PHPProcess, numWorkers),
 		connectionQueue: make(chan net.Conn, numWorkers),
-		requestQueue:    make(chan *PHPHandler, numWorkers),
 		idleWorker:      make(chan *PHPProcess, 1),
 	}
 }
@@ -63,43 +68,34 @@ func (m *Manager) Listen(l net.Listener) {
 	}
 }
 
-func (m *Manager) handleQueue() {
+func (m *Manager) handleConnectionQueue() {
 	for {
 		select {
 		case c := <-m.connectionQueue:
 			worker := <-m.idleWorker
 			worker.Connect(c)
-		case h := <-m.requestQueue:
-			worker := <-m.idleWorker
-			if res, err := worker.Handle(h.Request); err != nil {
-				h.Error <- err
-			} else {
-				h.Response <- res
-			}
 		}
 	}
 }
 
 func (m *Manager) Request(req string) (string, error) {
 	h := NewPHPHandler(req)
-	m.requestQueue <- h
 
-	requestTimeout := 10000
-	if m.config.RequestTimeout != 0 {
-		requestTimeout = m.config.RequestTimeout
-	}
-
-	ticker := time.NewTicker(time.Duration(requestTimeout) * time.Millisecond)
+	ticker := time.NewTicker(time.Duration(m.config.RequestTimeout) * time.Millisecond)
 	defer ticker.Stop()
 
 	for {
 		select {
 		case <-ticker.C:
-			return "", fmt.Errorf("request timeout")
-		case err := <-h.Error:
-			return "", err
-		case res := <-h.Response:
-			return res, nil
+			return "", errors.New("request timeout")
+		case worker := <-m.idleWorker:
+			if res, err := worker.Handle(h.Request); err != nil {
+				return "", err
+			} else {
+				return res, nil
+			}
+		default:
+			fmt.Println(time.Now().String(), "waiting for idle worker")
 		}
 	}
 }
@@ -125,7 +121,7 @@ func (m *Manager) Start(l net.Listener) error {
 
 	go m.getIdleWorker()
 
-	go m.handleQueue()
+	go m.handleConnectionQueue()
 
 	return <-errC
 }

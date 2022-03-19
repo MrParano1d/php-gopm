@@ -2,6 +2,8 @@
 
 !WIP!
 
+**Warning** 10% of the traffic is currently swallowed by the http server. :(
+
 PHP-GOPM is a php process manager written it go.
 
 Currently, it's based on TCP client sockets in the php code and a TCP server in go.
@@ -28,6 +30,7 @@ However, if you don't need Go code at all on the server side, then you should ra
 
 ## TODOs
 
+- [ ] Map PHP Process to TCP connection
 - [ ] Process Manager Configuration
 - [ ] Reload PHP workers when script file changes
 - [ ] Docs

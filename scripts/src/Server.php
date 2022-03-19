@@ -21,7 +21,6 @@ class Server {
     $this->httpHandler = $handler;
   }
 
-
   public function listen() {
     $errorCode = 0;
     $errorString = "";
