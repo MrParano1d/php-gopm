@@ -1,0 +1,5 @@
+scripts/vendor
+
+*.pprof
+
+.idea
